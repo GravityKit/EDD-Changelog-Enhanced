@@ -76,6 +76,11 @@ class EDD_Changelog_Enhanced {
         // Register our enhanced changelog
         add_action( 'init', array( $this, 'register_changelog_endpoint' ) );
         add_action( 'template_redirect', array( $this, 'handle_changelog_request' ), -999 );
+        
+        // Cache invalidation hooks
+        add_action( 'updated_post_meta', array( $this, 'invalidate_changelog_cache' ), 10, 4 );
+        add_action( 'added_post_meta', array( $this, 'invalidate_changelog_cache' ), 10, 4 );
+        add_action( 'deleted_post_meta', array( $this, 'invalidate_changelog_cache' ), 10, 4 );
     }
 
     /**
@@ -171,8 +176,14 @@ class EDD_Changelog_Enhanced {
         // Set headers for iframe embedding and SEO
         $this->set_changelog_headers( $download );
 
-        // Output the enhanced changelog
-        $this->output_enhanced_changelog( $download, $changelog );
+        // Check for cached HTML output first
+        $cached_html = $this->get_cached_changelog_html( $download->ID, $changelog );
+        
+        if ( $cached_html !== false ) {
+            echo $cached_html;
+        } else {
+            $this->output_and_cache_enhanced_changelog( $download, $changelog );
+        }
 
         exit;
     }
@@ -272,9 +283,16 @@ class EDD_Changelog_Enhanced {
     }
 
     /**
-     * Set headers for changelog response
+     * Set headers for changelog response with version-based long-term caching
      */
     private function set_changelog_headers( $download ) {
+        // Set no-cache for admin and logged-in users to prevent issues
+        if ( is_admin() || is_user_logged_in() ) {
+            header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
+            header( 'Content-Type: text/html; charset=UTF-8' );
+            return;
+        }
+
         // Allow iframe embedding
         header( 'X-Frame-Options: SAMEORIGIN' );
 
@@ -287,13 +305,27 @@ class EDD_Changelog_Enhanced {
         // Set content type with explicit UTF-8 charset
         header( 'Content-Type: text/html; charset=UTF-8' );
 
-        // Cache headers
-        header( 'Cache-Control: public, max-age=3600' );
-        header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 3600 ) . ' GMT' );
-
-        // ETag based on content hash
+        // Get version for long-term caching
+        $version = get_post_meta( $download->ID, '_edd_sl_version', true );
         $changelog = get_post_meta( $download->ID, '_edd_sl_changelog', true );
-        $etag = md5( $changelog . $download->post_modified );
+        
+        if ( ! empty( $version ) ) {
+            // Long-term caching based on version (30 days for immutable content)
+            $max_age = 30 * 24 * 3600; // 30 days
+            header( 'Cache-Control: public, max-age=' . $max_age . ', immutable' );
+            header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + $max_age ) . ' GMT' );
+            
+            // Version-based ETag for better cache validation
+            $etag = md5( $changelog . $version );
+        } else {
+            // Fallback to shorter cache without version
+            header( 'Cache-Control: public, max-age=3600' );
+            header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 3600 ) . ' GMT' );
+            
+            // Fallback ETag based on content and modification time
+            $etag = md5( $changelog . $download->post_modified );
+        }
+        
         header( 'ETag: "' . $etag . '"' );
 
         // Handle conditional requests
@@ -670,6 +702,130 @@ class EDD_Changelog_Enhanced {
             'alt'    => ! empty( $alt_text ) ? esc_attr( $alt_text ) : '',
             'mime_type' => ! empty( $image_meta['mime_type'] ) ? $image_meta['mime_type'] : 'image/jpeg'
         );
+    }
+
+    /**
+     * Generate a simplified cache key using plugin version
+     *
+     * @param int    $download_id The download post ID
+     * @param string $changelog   The changelog content (unused, kept for compatibility)
+     * @return string The cache key
+     */
+    private function generate_cache_key( $download_id, $changelog ) {
+        $download_version = get_post_meta( $download_id, '_edd_sl_version', true );
+        $plugin_version = EDD_CHANGELOG_ENHANCED_VERSION;
+        
+        // Simple cache key using only download ID, download version, and plugin version
+        return sprintf( 
+            'edd_changelog_%d_%s_%s',
+            $download_id,
+            $download_version ? $download_version : 'noversion',
+            $plugin_version
+        );
+    }
+
+    /**
+     * Get cached changelog HTML using simplified cache key
+     *
+     * @param int    $download_id The download post ID
+     * @param string $changelog   The changelog content
+     * @return string|false Cached HTML or false if not found
+     */
+    private function get_cached_changelog_html( $download_id, $changelog ) {
+        if ( empty( $download_id ) ) {
+            return false;
+        }
+
+        $cache_key = $this->generate_cache_key( $download_id, $changelog );
+        return get_option( $cache_key, false );
+    }
+
+    /**
+     * Cache changelog HTML using simplified cache key
+     *
+     * @param int    $download_id The download post ID
+     * @param string $changelog   The changelog content
+     * @param string $html        The rendered HTML to cache
+     * @return void
+     */
+    private function cache_changelog_html( $download_id, $changelog, $html ) {
+        if ( empty( $download_id ) || empty( $html ) ) {
+            return;
+        }
+
+        $cache_key = $this->generate_cache_key( $download_id, $changelog );
+        
+        // Cache the HTML (don't autoload)
+        update_option( $cache_key, $html, false );
+    }
+
+    /**
+     * Output enhanced changelog with caching
+     *
+     * @param WP_Post $download The download post object
+     * @param string  $changelog The changelog content
+     * @return void
+     */
+    private function output_and_cache_enhanced_changelog( $download, $changelog ) {
+        // Start output buffering to capture the HTML
+        ob_start();
+        
+        // Generate the changelog HTML
+        $this->output_enhanced_changelog( $download, $changelog );
+        
+        // Get the generated HTML
+        $html = ob_get_contents();
+        ob_end_clean();
+        
+        // Cache the HTML for future requests
+        $this->cache_changelog_html( $download->ID, $changelog, $html );
+        
+        // Output the HTML
+        echo $html;
+    }
+
+    /**
+     * Invalidate cached HTML when version or changelog changes
+     *
+     * @param int    $meta_id     ID of the metadata entry
+     * @param int    $object_id   Post ID
+     * @param string $meta_key    Meta key
+     * @param mixed  $meta_value  Meta value
+     * @return void
+     */
+    public function invalidate_changelog_cache( $meta_id, $object_id, $meta_key, $meta_value ) {
+        // Only handle EDD version and changelog meta updates for download posts
+        if ( ! in_array( $meta_key, array( '_edd_sl_version', '_edd_sl_changelog' ), true ) ) {
+            return;
+        }
+
+        // Verify this is a download post
+        if ( get_post_type( $object_id ) !== 'download' ) {
+            return;
+        }
+
+        // Clear cached HTML for this download
+        $this->clear_changelog_cache( $object_id );
+    }
+
+    /**
+     * Clear cached HTML for a specific download
+     *
+     * @param int $download_id The download post ID
+     * @return void
+     */
+    private function clear_changelog_cache( $download_id ) {
+        if ( empty( $download_id ) ) {
+            return;
+        }
+
+        // Get current changelog to generate cache key
+        $changelog = get_post_meta( $download_id, '_edd_sl_changelog', true );
+        
+        if ( ! empty( $changelog ) ) {
+            $cache_key = $this->generate_cache_key( $download_id, $changelog );
+            delete_option( $cache_key );
+        }
     }
 
     /**

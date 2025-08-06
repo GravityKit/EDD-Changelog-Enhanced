@@ -17,7 +17,7 @@ EDD Changelog Enhanced replaces the default EDD Software Licensing changelog fun
 - **Print-friendly** styling
 - **Theme override** support
 - **UTF-8 and emoji** handling
-- **HTTP caching** with ETags
+- **Intelligent caching** with automatic invalidation
 
 ## Requirements
 
@@ -72,6 +72,7 @@ edd-changelog-enhanced/
 - **Main Class**: `EDD_Changelog_Enhanced` (Singleton)
 - **Endpoint**: Custom rewrite endpoint
 - **Template System**: WordPress template hierarchy with overrides
+- **Caching System**: Simplified version-based caching with plugin version integration
 
 ### Security Features
 - Input validation and sanitization
@@ -86,11 +87,26 @@ edd-changelog-enhanced/
 - Proper heading hierarchy
 - Dynamic Twitter card types (summary_large_image when image exists)
 
+### Caching System
+
+The plugin uses a simplified, efficient caching strategy:
+
+- **Cache Key Format**: `edd_changelog_{download_id}_{download_version}_{plugin_version}`
+- **Automatic Invalidation**: Cache clears when download version or plugin version changes
+- **Database Storage**: Uses WordPress options table (non-autoloaded)
+- **No Manual Management**: No cache key tracking or complex cleanup routines
+
+**Cache Lifecycle**:
+1. Generated HTML is cached using version-based keys
+2. Cache automatically becomes invalid when versions change
+3. Manual invalidation via WordPress meta update hooks
+
 ### Performance
-- HTTP caching with ETags
-- Content-based cache invalidation
-- Minimal CSS footprint
-- Mobile-first responsive design
+- **Simplified HTML caching** - Efficient cache keys without content hashing
+- **Automatic cache invalidation** - No stale cache issues from version updates
+- **HTTP caching with ETags** - Version-based ETags for browser cache validation
+- **Minimal CSS footprint** - Optimized styling for fast loading  
+- **Mobile-first responsive design** - Optimized for all devices
 
 ## Development
 
