@@ -635,6 +635,44 @@ class EDD_Changelog_Enhanced {
     }
 
     /**
+     * Get featured image data for social sharing
+     *
+     * @param int $download_id The download post ID
+     * @return array|null Featured image data with URL, width, height, and alt text
+     */
+    private function get_download_featured_image( $download_id ) {
+        if ( empty( $download_id ) || ! is_numeric( $download_id ) ) {
+            return null;
+        }
+
+        // Get the featured image ID
+        $featured_image_id = get_post_thumbnail_id( $download_id );
+        
+        if ( empty( $featured_image_id ) ) {
+            return null;
+        }
+
+        // Get image data for large size (suitable for social sharing)
+        $image_data = wp_get_attachment_image_src( $featured_image_id, 'large' );
+        
+        if ( empty( $image_data ) || ! is_array( $image_data ) ) {
+            return null;
+        }
+
+        // Get additional image metadata
+        $alt_text = get_post_meta( $featured_image_id, '_wp_attachment_image_alt', true );
+        $image_meta = wp_get_attachment_metadata( $featured_image_id );
+
+        return array(
+            'url'    => esc_url( $image_data[0] ),
+            'width'  => (int) $image_data[1],
+            'height' => (int) $image_data[2],
+            'alt'    => ! empty( $alt_text ) ? esc_attr( $alt_text ) : '',
+            'mime_type' => ! empty( $image_meta['mime_type'] ) ? $image_meta['mime_type'] : 'image/jpeg'
+        );
+    }
+
+    /**
      * Log errors for debugging
      *
      * @param string $message Error message to log
@@ -660,6 +698,9 @@ class EDD_Changelog_Enhanced {
         $last_modified = get_post_modified_time( 'c', false, $download->ID );
         $entries = $this->parse_changelog_entries( $changelog );
 
+        // Get featured image for social sharing
+        $featured_image = $this->get_download_featured_image( $download->ID );
+
         // Create a closure for date formatting to make it available in template
         $format_date_safely = function( $date_string ) {
             return $this->format_date_safely( $date_string );
@@ -673,6 +714,7 @@ class EDD_Changelog_Enhanced {
             'last_modified',
             'changelog',
             'entries',
+            'featured_image',
             'format_date_safely'
         ) );
     }

@@ -11,6 +11,7 @@ EDD Changelog Enhanced replaces the default EDD Software Licensing changelog fun
 - **Semantic HTML5** with proper heading hierarchy
 - **Microformats** support for better machine readability
 - **SEO optimization** with meta tags and structured data
+- **Social media integration** with featured image support for Twitter, Facebook, and LinkedIn
 - **Iframe embedding** support with security headers
 - **Mobile-responsive** design
 - **Print-friendly** styling
@@ -37,6 +38,13 @@ The plugin automatically registers changelog endpoints for EDD downloads:
 ```
 /{download-slug}/changelog/
 ```
+
+### Social Media Integration
+
+When EDD downloads have featured images, the changelog pages automatically include:
+- Open Graph meta tags for Facebook and LinkedIn sharing
+- Twitter Card metadata with large image preview
+- Schema.org ImageObject structured data
 
 ### Template Override
 
@@ -72,10 +80,11 @@ edd-changelog-enhanced/
 - Security headers for iframe embedding
 
 ### SEO Features
-- Open Graph and Twitter Card meta tags
-- Schema.org structured data
+- Open Graph and Twitter Card meta tags with featured image support
+- Schema.org structured data with ImageObject integration
 - Canonical URLs
 - Proper heading hierarchy
+- Dynamic Twitter card types (summary_large_image when image exists)
 
 ### Performance
 - HTTP caching with ETags

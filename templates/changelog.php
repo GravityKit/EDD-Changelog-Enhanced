@@ -34,15 +34,30 @@ if ( ! defined( 'ABSPATH' ) ) {
     <meta property="og:type" content="article">
     <meta property="og:url" content="<?php echo esc_url( $download_url . EDD_CHANGELOG_ENHANCED_SLUG . '/' ); ?>">
     <meta property="article:modified_time" content="<?php echo esc_attr( $last_modified ); ?>">
+    <?php if ( ! empty( $featured_image ) && ! empty( $featured_image['url'] ) ) : ?>
+    <meta property="og:image" content="<?php echo esc_url( $featured_image['url'] ); ?>">
+    <meta property="og:image:width" content="<?php echo esc_attr( $featured_image['width'] ); ?>">
+    <meta property="og:image:height" content="<?php echo esc_attr( $featured_image['height'] ); ?>">
+    <meta property="og:image:type" content="<?php echo esc_attr( $featured_image['mime_type'] ); ?>">
+    <?php if ( ! empty( $featured_image['alt'] ) ) : ?>
+    <meta property="og:image:alt" content="<?php echo esc_attr( $featured_image['alt'] ); ?>">
+    <?php endif; ?>
+    <?php endif; ?>
     
     <!-- Canonical and parent relationship -->
     <link rel="canonical" href="<?php echo esc_url( $download_url . EDD_CHANGELOG_ENHANCED_SLUG . '/' ); ?>">
     <link rel="up" href="<?php echo esc_url( $download_url ); ?>" title="<?php echo esc_attr( $download_name ); ?>">
 
     <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="<?php echo ( ! empty( $featured_image ) && ! empty( $featured_image['url'] ) ) ? 'summary_large_image' : 'summary'; ?>">
     <meta name="twitter:title" content="<?php echo esc_attr( sprintf( __( '%s - Changelog', 'edd-changelog-enhanced' ), $download_name ) ); ?>">
     <meta name="twitter:description" content="<?php echo esc_attr( sprintf( __( 'Latest updates and release notes for %s', 'edd-changelog-enhanced' ), $download_name ) ); ?>">
+    <?php if ( ! empty( $featured_image ) && ! empty( $featured_image['url'] ) ) : ?>
+    <meta name="twitter:image" content="<?php echo esc_url( $featured_image['url'] ); ?>">
+    <?php if ( ! empty( $featured_image['alt'] ) ) : ?>
+    <meta name="twitter:image:alt" content="<?php echo esc_attr( $featured_image['alt'] ); ?>">
+    <?php endif; ?>
+    <?php endif; ?>
 
     <!-- Schema.org JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -55,7 +70,14 @@ if ( ! defined( 'ABSPATH' ) ) {
         "dateModified": "<?php echo esc_attr( $last_modified ); ?>",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "WordPress",
-        "softwareVersion": "<?php echo ! empty( $entries ) && ! empty( $entries[0]['version'] ) ? esc_js( $entries[0]['version'] ) : ''; ?>"
+        "softwareVersion": "<?php echo ! empty( $entries ) && ! empty( $entries[0]['version'] ) ? esc_js( $entries[0]['version'] ) : ''; ?>"<?php if ( ! empty( $featured_image ) && ! empty( $featured_image['url'] ) ) : ?>,
+        "image": {
+            "@type": "ImageObject",
+            "url": "<?php echo esc_url( $featured_image['url'] ); ?>",
+            "width": <?php echo (int) $featured_image['width']; ?>,
+            "height": <?php echo (int) $featured_image['height']; ?><?php if ( ! empty( $featured_image['alt'] ) ) : ?>,
+            "caption": "<?php echo esc_js( $featured_image['alt'] ); ?>"<?php endif; ?>
+        }<?php endif; ?>
     }
     </script>
 
