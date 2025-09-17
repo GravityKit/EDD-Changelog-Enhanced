@@ -154,4 +154,22 @@ GPL v2 or later
 
 ## Support
 
-For support and feature requests, visit [GravityKit](https://gravitykit.com).
+For support and feature requests, visit [GravityKit](https://www.gravitykit.com).
+
+## About GravityKit
+
+This plugin is brought to you by [GravityKit](https://www.gravitykit.com), the company behind the best Gravity Forms add-ons. We create powerful tools that extend WordPress and Gravity Forms to help you build better websites and web applications.
+
+### Some of Our Products
+
+- **[GravityView](https://www.gravitykit.com/products/gravityview/)** - Display, edit, and export Gravity Forms entries on your website
+- **[GravityBoard](https://www.gravitykit.com/products/gravityboard/)** - Create a kanban board using Gravity Forms entries
+- **[GravityEdit](https://www.gravitykit.com/products/gravityedit/)** - Fast inline editing for Gravity Forms entries
+- **[GravityExport](https://www.gravitykit.com/products/gravityexport/)** - Export Gravity Forms entries to Excel, CSV, and PDF
+- **[GravityImport](https://www.gravitykit.com/products/gravityimport/)** - Import entries into Gravity Forms
+- **[GravityActions](https://www.gravitykit.com/products/gravityactions/)** - Perform bulk actions on Gravity Forms entries
+- **[GravityCalendar](https://www.gravitykit.com/products/gravitycalendar/)** - Display Gravity Forms entries in a calendar
+- **[GravityCharts](https://www.gravitykit.com/products/gravitycharts/)** - Create charts from Gravity Forms data
+- **[GravityMath](https://www.gravitykit.com/products/gravitymath/)** - Perform calculations on Gravity Forms data
+
+[See more at gravitykit.com](https://www.gravitykit.com).
