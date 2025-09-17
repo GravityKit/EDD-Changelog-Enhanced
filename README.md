@@ -18,6 +18,7 @@ EDD Changelog Enhanced replaces the default EDD Software Licensing changelog fun
 - **Theme override** support
 - **UTF-8 and emoji** handling
 - **Intelligent caching** with automatic invalidation
+- **Sitemap integration** with Yoast SEO for changelog URLs (v1.1+)
 
 ## Requirements
 
@@ -73,6 +74,7 @@ edd-changelog-enhanced/
 - **Endpoint**: Custom rewrite endpoint
 - **Template System**: WordPress template hierarchy with overrides
 - **Caching System**: Simplified version-based caching with plugin version integration
+- **Sitemap Integration**: Automatic changelog URL injection via Yoast SEO filters
 
 ### Security Features
 - Input validation and sanitization
@@ -101,11 +103,27 @@ The plugin uses a simplified, efficient caching strategy:
 2. Cache automatically becomes invalid when versions change
 3. Manual invalidation via WordPress meta update hooks
 
+### Sitemap Integration (v1.1+)
+
+The plugin automatically adds changelog URLs to Yoast SEO sitemaps for better search engine discovery:
+
+- **Automatic URL Addition**: Each download's `/changelog/` URL is added to the sitemap
+- **Smart Date Detection**: Uses the latest version date from changelog as `lastmod` value
+- **Proper Formatting**: Utilizes Yoast's `sitemap_url()` method for correct XML structure
+- **No Images**: Changelog entries are marked with empty image arrays (changelogs don't have images)
+- **Priority Adjustment**: Changelog URLs receive slightly lower priority than main download pages
+
+**How it works**:
+1. Hooks into `wpseo_sitemap_entry` to collect download URLs
+2. Parses changelog content to extract latest version date
+3. Adds formatted changelog URLs via `wpseo_sitemap_download_content` filter
+4. Each changelog URL includes accurate `lastmod` based on version release date
+
 ### Performance
 - **Simplified HTML caching** - Efficient cache keys without content hashing
 - **Automatic cache invalidation** - No stale cache issues from version updates
 - **HTTP caching with ETags** - Version-based ETags for browser cache validation
-- **Minimal CSS footprint** - Optimized styling for fast loading  
+- **Minimal CSS footprint** - Optimized styling for fast loading
 - **Mobile-first responsive design** - Optimized for all devices
 
 ## Development
