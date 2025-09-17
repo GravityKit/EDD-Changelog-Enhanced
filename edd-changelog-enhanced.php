@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: EDD Changelog Enhanced
- * Plugin URI: https://gravitykit.com
+ * Plugin URI: https://www.gravitykit.com
  * Description: Enhanced changelog endpoint with semantic HTML, microformats, and SEO optimization for EDD Software Licensing downloads. Designed for iframe embedding.
  * Version: 1.1
  * Author: GravityKit
- * Author URI: https://gravitykit.com
+ * Author URI: https://www.gravitykit.com
  * Text Domain: edd-changelog-enhanced
  * Domain Path: /languages
  * Requires at least: 5.0
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Plugin constants
 if ( ! defined( 'EDD_CHANGELOG_ENHANCED_VERSION' ) ) {
-    define( 'EDD_CHANGELOG_ENHANCED_VERSION', '1.0.0' );
+    define( 'EDD_CHANGELOG_ENHANCED_VERSION', '1.1' );
 }
 if ( ! defined( 'EDD_CHANGELOG_ENHANCED_FILE' ) ) {
     define( 'EDD_CHANGELOG_ENHANCED_FILE', __FILE__ );
@@ -170,7 +170,11 @@ class EDD_Changelog_Enhanced {
         // Get and validate download
         $download = $this->get_valid_download( $wp_query->query_vars['download'] );
         if ( ! $download ) {
-            wp_die( __( 'Download not found.', 'edd-changelog-enhanced' ), 404 );
+            wp_die(
+                __( 'Download not found.', 'edd-changelog-enhanced' ),
+                '',
+                array( 'response' => 404 )
+            );
             return;
         }
 
@@ -178,7 +182,11 @@ class EDD_Changelog_Enhanced {
         $changelog = $this->get_changelog_content( $download->ID );
 
         if ( empty( $changelog ) ) {
-            wp_die( __( 'No changelog found for this download.', 'edd-changelog-enhanced' ), 404 );
+            wp_die(
+                __( 'No changelog found for this download.', 'edd-changelog-enhanced' ),
+                '',
+                array( 'response' => 404 )
+            );
             return;
         }
 
@@ -305,11 +313,7 @@ class EDD_Changelog_Enhanced {
         // Allow iframe embedding
         header( 'X-Frame-Options: SAMEORIGIN' );
 
-        // Get current site domain for CSP
-        $parsed_url = parse_url( home_url() );
-        $site_domain = isset( $parsed_url['host'] ) ? $parsed_url['host'] : 'localhost';
-
-        header( 'Content-Security-Policy: frame-ancestors \'self\' *.' . $site_domain );
+        header( "Content-Security-Policy: frame-ancestors 'self'" );
 
         // Set content type with explicit UTF-8 charset
         header( 'Content-Type: text/html; charset=UTF-8' );
@@ -398,7 +402,9 @@ class EDD_Changelog_Enhanced {
             }
         }
 
-        return $entries;
+        if ( ! empty( $entries ) ) {
+            return $entries;
+        }
 
         try {
             // Create a DOMDocument to parse the HTML
@@ -509,7 +515,33 @@ class EDD_Changelog_Enhanced {
         } finally {
             // Clear any libxml errors
             libxml_clear_errors();
+            libxml_use_internal_errors( false );
         }
+
+        foreach ( $entries as &$entry ) {
+            if ( ! isset( $entry['sections'] ) || empty( $entry['sections'] ) ) {
+                $entry['content'] = isset( $entry['content'] ) ? $entry['content'] : '';
+                continue;
+            }
+
+            $content = '';
+
+            if ( isset( $entry['sections']['general'] ) ) {
+                $content .= $entry['sections']['general']['content'];
+                unset( $entry['sections']['general'] );
+            }
+
+            foreach ( $entry['sections'] as $section ) {
+                if ( ! empty( $section['title'] ) ) {
+                    $content .= '<h3>' . esc_html( $section['title'] ) . '</h3>';
+                }
+                $content .= $section['content'];
+            }
+
+            $entry['content'] = $content;
+            unset( $entry['sections'] );
+        }
+        unset( $entry );
 
         return $entries;
     }
@@ -618,8 +650,7 @@ class EDD_Changelog_Enhanced {
         }
 
         // Common emoji encoding fixes - expanded list with context-aware replacements
-        $fixes = array(
-            // UTF-8 replacement character (�) patterns that might represent different emojis
+        $contextual_fixes = array(
             'ð Initial'     => '🚀 Initial',     // Rocket for initial release
             'ð Added'       => '✨ Added',       // Sparkles for new features
             'ð Fixed'       => '🐛 Fixed',       // Bug for fixes
@@ -628,28 +659,37 @@ class EDD_Changelog_Enhanced {
             'ð Updated'     => '🔄 Updated',     // Arrows for updates
             'ð Security'    => '🛡️ Security',    // Shield for security
             'ð Performance' => '🚀 Performance', // Rocket for performance
-
-            // Fallback single character replacements
-            'ð'     => '🚀', // Default to rocket if no context
-            'ð'     => '🐛', // Bug
-            'â¨'     => '✨', // Sparkles
-            'ð§'     => '🔧', // Wrench
-            'ð'     => '🎉', // Party
-            'ð'     => '📝', // Memo
-            'â'     => '⚡', // Lightning
-            'ð¡ï¸'   => '🛡️', // Shield
-            'ð'     => '🔥', // Fire
-            'ð'     => '💡', // Bulb
-            'ð­'     => '🎯', // Target
-            'ð'     => '✅', // Check mark
-            'â'     => '❌', // Cross mark
-            'ð'     => '📋', // Clipboard
-            'ð¨'     => '🔨', // Hammer
-            'ð'     => '🔄', // Arrows for refresh/update
         );
 
-        // Apply fixes
-        foreach ( $fixes as $broken => $fixed ) {
+        foreach ( $contextual_fixes as $broken => $fixed ) {
+            if ( strpos( $content, $broken ) !== false ) {
+                $content = str_replace( $broken, $fixed, $content );
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    $this->log_error( "Fixed emoji: {$broken} -> {$fixed}" );
+                }
+            }
+        }
+
+        $fallback_fixes = array(
+            'ð¨'   => '🔨',
+            'ð§'   => '🔧',
+            'ð¯'   => '🎯',
+            'ð¡ï¸' => '🛡️',
+            'â¨'     => '✨',
+            'â¡'     => '⚡',
+            'ð'   => '🚀',
+            'ð'   => '🐛',
+            'ð'   => '🎉',
+            'ð'   => '📝',
+            'ð¥'   => '🔥',
+            'ð¡'   => '💡',
+            'â'     => '✅',
+            'â'     => '❌',
+            'ð'   => '📋',
+            'ð'   => '🔄',
+        );
+
+        foreach ( $fallback_fixes as $broken => $fixed ) {
             if ( strpos( $content, $broken ) !== false ) {
                 $content = str_replace( $broken, $fixed, $content );
                 if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
