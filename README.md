@@ -148,13 +148,32 @@ The plugin parses changelogs with version headings like:
 </ul>
 ```
 
+## Contributing
+
+We welcome contributions from the community! Whether it's bug fixes, new features, documentation improvements, or translations, we appreciate your help in making this plugin better.
+
+### How to Contribute
+
+1. **Fork the repository** on GitHub
+2. **Create a feature branch** from `main` (`git checkout -b feature/amazing-feature`)
+3. **Make your changes** and commit them with clear, descriptive messages
+4. **Test your changes** to ensure they work as expected
+5. **Push to your fork** (`git push origin feature/amazing-feature`)
+6. **Open a Pull Request** with a clear title and description
+
+### Guidelines
+
+- Follow WordPress coding standards
+- Include proper documentation for new features
+- Add tests if applicable
+- Keep commits atomic and focused
+- Update the README if needed
+
+We'll review your PR as soon as possible and provide feedback. Thank you for contributing!
+
 ## License
 
 GPL v2 or later
-
-## Support
-
-For support and feature requests, visit [GravityKit](https://www.gravitykit.com).
 
 ## About GravityKit
 
