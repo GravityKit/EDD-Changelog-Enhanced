@@ -3,7 +3,7 @@
  * Plugin Name: EDD Changelog Enhanced
  * Plugin URI: https://gravitykit.com
  * Description: Enhanced changelog endpoint with semantic HTML, microformats, and SEO optimization for EDD Software Licensing downloads. Designed for iframe embedding.
- * Version: 1.0.0
+ * Version: 1.1
  * Author: GravityKit
  * Author URI: https://gravitykit.com
  * Text Domain: edd-changelog-enhanced
@@ -48,6 +48,11 @@ class EDD_Changelog_Enhanced {
     private static $instance;
 
     /**
+     * Store download URLs for changelog generation
+     */
+    private $download_urls = array();
+
+    /**
      * Get instance
      */
     public static function instance() {
@@ -76,11 +81,15 @@ class EDD_Changelog_Enhanced {
         // Register our enhanced changelog
         add_action( 'init', array( $this, 'register_changelog_endpoint' ) );
         add_action( 'template_redirect', array( $this, 'handle_changelog_request' ), -999 );
-        
+
         // Cache invalidation hooks
         add_action( 'updated_post_meta', array( $this, 'invalidate_changelog_cache' ), 10, 4 );
         add_action( 'added_post_meta', array( $this, 'invalidate_changelog_cache' ), 10, 4 );
         add_action( 'deleted_post_meta', array( $this, 'invalidate_changelog_cache' ), 10, 4 );
+
+        // Add changelog URLs to sitemap.
+        add_filter( 'wpseo_sitemap_entry', array( $this, 'collect_download_urls' ), 10, 3 );
+        add_filter( 'wpseo_sitemap_download_content', array( $this, 'add_changelog_urls_to_sitemap' ), 10, 1 );
     }
 
     /**
@@ -178,7 +187,7 @@ class EDD_Changelog_Enhanced {
 
         // Check for cached HTML output first
         $cached_html = $this->get_cached_changelog_html( $download->ID, $changelog );
-        
+
         if ( $cached_html !== false ) {
             echo $cached_html;
         } else {
@@ -265,7 +274,7 @@ class EDD_Changelog_Enhanced {
         if ( ! mb_check_encoding( $raw_changelog, 'UTF-8' ) ) {
             $raw_changelog = mb_convert_encoding( $raw_changelog, 'UTF-8', 'auto' );
         }
-        
+
         // Fix common emoji encoding issues
         $raw_changelog = $this->fix_emoji_encoding( $raw_changelog );
 
@@ -308,24 +317,24 @@ class EDD_Changelog_Enhanced {
         // Get version for long-term caching
         $version = get_post_meta( $download->ID, '_edd_sl_version', true );
         $changelog = get_post_meta( $download->ID, '_edd_sl_changelog', true );
-        
+
         if ( ! empty( $version ) ) {
             // Long-term caching based on version (30 days for immutable content)
             $max_age = 30 * 24 * 3600; // 30 days
             header( 'Cache-Control: public, max-age=' . $max_age . ', immutable' );
             header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + $max_age ) . ' GMT' );
-            
+
             // Version-based ETag for better cache validation
             $etag = md5( $changelog . $version );
         } else {
             // Fallback to shorter cache without version
             header( 'Cache-Control: public, max-age=3600' );
             header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + 3600 ) . ' GMT' );
-            
+
             // Fallback ETag based on content and modification time
             $etag = md5( $changelog . $download->post_modified );
         }
-        
+
         header( 'ETag: "' . $etag . '"' );
 
         // Handle conditional requests
@@ -348,17 +357,17 @@ class EDD_Changelog_Enhanced {
             return $entries;
         }
 
-        // Use regex to split by version headings and capture everything until next version  
+        // Use regex to split by version headings and capture everything until next version
         $pattern = '/(<h4[^>]*>[^<]*\d+\.\d+(?:\.\d+)?[^<]*<\/h4>)/i';
         $parts = preg_split( $pattern, $changelog, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
-        
+
         for ( $i = 0; $i < count( $parts ); $i++ ) {
             $part = trim( $parts[ $i ] );
-            
+
             // Check if this is a version heading
             if ( $this->is_version_heading_html( $part ) ) {
                 $heading_text = trim( strip_tags( $part ) );
-                
+
                 // Get all content until next version heading
                 $content = '';
                 for ( $j = $i + 1; $j < count( $parts ); $j++ ) {
@@ -369,21 +378,21 @@ class EDD_Changelog_Enhanced {
                     }
                     $content .= $next_part;
                 }
-                
+
                 // Convert h4 section headings to h3
                 $content = str_replace( array( '<h4', '</h4>' ), array( '<h3', '</h3>' ), $content );
-                
+
                 $entry = array(
                     'version' => $this->extract_version( $heading_text ),
                     'date' => $this->extract_date( $heading_text ),
                     'raw_heading' => $heading_text,
                     'content' => $content
                 );
-                
+
                 if ( ! empty( $entry['version'] ) ) {
                     $entries[] = $entry;
                 }
-                
+
                 // Skip the content parts we already processed
                 $i = $j - 1;
             }
@@ -407,7 +416,7 @@ class EDD_Changelog_Enhanced {
             if ( defined( 'LIBXML_HTML_NOIMPLIED' ) ) {
                 $flags |= LIBXML_HTML_NOIMPLIED;
             }
-            
+
             $result = $dom->loadHTML( '<div>' . $changelog . '</div>', $flags );
 
             if ( ! $result ) {
@@ -607,7 +616,7 @@ class EDD_Changelog_Enhanced {
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
             $this->log_error( 'Raw changelog content: ' . bin2hex( $content ) );
         }
-        
+
         // Common emoji encoding fixes - expanded list with context-aware replacements
         $fixes = array(
             // UTF-8 replacement character (�) patterns that might represent different emojis
@@ -619,10 +628,10 @@ class EDD_Changelog_Enhanced {
             'ð Updated'     => '🔄 Updated',     // Arrows for updates
             'ð Security'    => '🛡️ Security',    // Shield for security
             'ð Performance' => '🚀 Performance', // Rocket for performance
-            
+
             // Fallback single character replacements
             'ð'     => '🚀', // Default to rocket if no context
-            'ð'     => '🐛', // Bug  
+            'ð'     => '🐛', // Bug
             'â¨'     => '✨', // Sparkles
             'ð§'     => '🔧', // Wrench
             'ð'     => '🎉', // Party
@@ -638,7 +647,7 @@ class EDD_Changelog_Enhanced {
             'ð¨'     => '🔨', // Hammer
             'ð'     => '🔄', // Arrows for refresh/update
         );
-        
+
         // Apply fixes
         foreach ( $fixes as $broken => $fixed ) {
             if ( strpos( $content, $broken ) !== false ) {
@@ -648,12 +657,12 @@ class EDD_Changelog_Enhanced {
                 }
             }
         }
-        
+
         // Try WordPress's own emoji fixing function if available
         if ( function_exists( 'wp_encode_emoji' ) ) {
             $content = wp_encode_emoji( $content );
         }
-        
+
         // Also try to fix double-encoded UTF-8
         if ( function_exists( 'mb_convert_encoding' ) ) {
             // Detect if content might be double-encoded
@@ -662,7 +671,7 @@ class EDD_Changelog_Enhanced {
                 $content = $test_decode;
             }
         }
-        
+
         return $content;
     }
 
@@ -679,14 +688,14 @@ class EDD_Changelog_Enhanced {
 
         // Get the featured image ID
         $featured_image_id = get_post_thumbnail_id( $download_id );
-        
+
         if ( empty( $featured_image_id ) ) {
             return null;
         }
 
         // Get image data for large size (suitable for social sharing)
         $image_data = wp_get_attachment_image_src( $featured_image_id, 'large' );
-        
+
         if ( empty( $image_data ) || ! is_array( $image_data ) ) {
             return null;
         }
@@ -714,9 +723,9 @@ class EDD_Changelog_Enhanced {
     private function generate_cache_key( $download_id, $changelog ) {
         $download_version = get_post_meta( $download_id, '_edd_sl_version', true );
         $plugin_version = EDD_CHANGELOG_ENHANCED_VERSION;
-        
+
         // Simple cache key using only download ID, download version, and plugin version
-        return sprintf( 
+        return sprintf(
             'edd_changelog_%d_%s_%s',
             $download_id,
             $download_version ? $download_version : 'noversion',
@@ -754,7 +763,7 @@ class EDD_Changelog_Enhanced {
         }
 
         $cache_key = $this->generate_cache_key( $download_id, $changelog );
-        
+
         // Cache the HTML (don't autoload)
         update_option( $cache_key, $html, false );
     }
@@ -769,17 +778,17 @@ class EDD_Changelog_Enhanced {
     private function output_and_cache_enhanced_changelog( $download, $changelog ) {
         // Start output buffering to capture the HTML
         ob_start();
-        
+
         // Generate the changelog HTML
         $this->output_enhanced_changelog( $download, $changelog );
-        
+
         // Get the generated HTML
         $html = ob_get_contents();
         ob_end_clean();
-        
+
         // Cache the HTML for future requests
         $this->cache_changelog_html( $download->ID, $changelog, $html );
-        
+
         // Output the HTML
         echo $html;
     }
@@ -821,7 +830,7 @@ class EDD_Changelog_Enhanced {
 
         // Get current changelog to generate cache key
         $changelog = get_post_meta( $download_id, '_edd_sl_changelog', true );
-        
+
         if ( ! empty( $changelog ) ) {
             $cache_key = $this->generate_cache_key( $download_id, $changelog );
             delete_option( $cache_key );
@@ -918,6 +927,136 @@ class EDD_Changelog_Enhanced {
     public function deactivate() {
         // Flush rewrite rules to clean up
         flush_rewrite_rules();
+    }
+
+    /**
+     * Collect download URLs from sitemap entries
+     *
+     * This filter runs for each sitemap entry. We use it to collect
+     * download post URLs that we'll later use to create changelog URLs.
+     *
+     * @since 1.1
+     *
+     * @param array  $url  Array of URL parts.
+     * @param string $type URL type (e.g., 'post').
+     * @param object $post Data object for the URL.
+     * @return array URL array unchanged.
+     */
+    public function collect_download_urls( $url, $type, $post ) {
+        // Only process post types.
+        if ( 'post' !== $type ) {
+            return $url;
+        }
+
+        // Only process download post type.
+        if ( ! isset( $post->post_type ) || 'download' !== $post->post_type ) {
+            return $url;
+        }
+
+        // Store the URL data for later processing.
+        $this->download_urls[] = $url;
+
+        // Return the URL unchanged.
+        return $url;
+    }
+
+    /**
+     * Add changelog URLs to download sitemap
+     *
+     * This filter allows us to add extra content to the download sitemap.
+     * We use the collected download URLs to create changelog entries.
+     *
+     * @since 1.1
+     *
+     * @param string $content The existing content (empty by default).
+     * @return string The changelog URLs formatted as sitemap XML.
+     */
+    public function add_changelog_urls_to_sitemap( $content ) {
+        // Return if no download URLs were collected.
+        if ( empty( $this->download_urls ) ) {
+            return $content;
+        }
+
+        // We need to get access to the renderer to use sitemap_url method.
+        $renderer = new WPSEO_Sitemaps_Renderer();
+
+        $changelog_xml = '';
+
+        foreach ( $this->download_urls as $url_data ) {
+            // Skip if no location.
+            if ( ! isset( $url_data['loc'] ) ) {
+                continue;
+            }
+
+            // Get the post ID from the URL to fetch changelog data.
+            $post_id = url_to_postid( $url_data['loc'] );
+            if ( ! $post_id ) {
+                continue;
+            }
+
+            // Create changelog URL entry.
+            $changelog_entry = $url_data;
+            $changelog_entry['loc'] = trailingslashit( $url_data['loc'] ) . 'changelog/';
+
+            // Changelogs have no images.
+            $changelog_entry['images'] = [];
+
+            // Get the latest changelog date.
+            $latest_date = $this->get_latest_changelog_date( $post_id );
+            if ( ! empty( $latest_date ) ) {
+                // Update lastmod with the changelog's latest version date.
+                $changelog_entry['mod'] = $latest_date;
+            }
+
+            // Optionally adjust priority.
+            if ( isset( $changelog_entry['pri'] ) ) {
+                $changelog_entry['pri'] = max( 0.1, $changelog_entry['pri'] - 0.2 );
+            }
+
+            // Use the renderer's sitemap_url method to format properly.
+            $changelog_xml .= $renderer->sitemap_url( $changelog_entry );
+        }
+
+        // Clear the stored URLs for next run.
+        $this->download_urls = array();
+
+        // Return the combined content.
+        return $content . $changelog_xml;
+    }
+
+    /**
+     * Get the latest changelog date for a download
+     *
+     * Parses the changelog to find the most recent version's date.
+     *
+     * @since 1.1
+     *
+     * @param int $post_id The download post ID.
+     * @return string ISO 8601 formatted date or empty string.
+     */
+    private function get_latest_changelog_date( $post_id ) {
+        // Get the changelog content.
+        $changelog = $this->get_changelog_content( $post_id );
+
+        if ( empty( $changelog ) ) {
+            return '';
+        }
+
+        // Parse changelog entries.
+        $entries = $this->parse_changelog_entries( $changelog );
+
+        if ( empty( $entries ) || ! is_array( $entries ) ) {
+            return '';
+        }
+
+        // Get the first entry (most recent).
+        $latest_entry = reset( $entries );
+
+        if ( ! empty( $latest_entry['date'] ) ) {
+            return $latest_entry['date'];
+        }
+
+        return '';
     }
 }
 
