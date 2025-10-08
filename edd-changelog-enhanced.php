@@ -644,11 +644,6 @@ class EDD_Changelog_Enhanced {
      * @return string Fixed content
      */
     private function fix_emoji_encoding( $content ) {
-        // Log the problematic content for debugging
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            $this->log_error( 'Raw changelog content: ' . bin2hex( $content ) );
-        }
-
         // Common emoji encoding fixes - expanded list with context-aware replacements
         $contextual_fixes = array(
             'ð Initial'     => '🚀 Initial',     // Rocket for initial release
@@ -1101,4 +1096,5 @@ class EDD_Changelog_Enhanced {
 }
 
 // Initialize the plugin
+
 EDD_Changelog_Enhanced::instance();
