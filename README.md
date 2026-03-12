@@ -107,7 +107,7 @@ The plugin uses a simplified, efficient caching strategy:
 
 The plugin automatically adds changelog URLs to Yoast SEO sitemaps for better search engine discovery:
 
-- **Automatic URL Addition**: Each download's `/changelog/` URL is added to the sitemap
+- **Automatic URL Addition**: Each download's `/changelog/` URL is added to the sitemap (only for downloads that have changelog content)
 - **Smart Date Detection**: Uses the latest version date from changelog as `lastmod` value
 - **Proper Formatting**: Utilizes Yoast's `sitemap_url()` method for correct XML structure
 - **No Images**: Changelog entries are marked with empty image arrays (changelogs don't have images)
