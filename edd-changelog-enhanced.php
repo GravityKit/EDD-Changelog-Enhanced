@@ -988,6 +988,12 @@ class EDD_Changelog_Enhanced {
             return $url;
         }
 
+        // Skip downloads without a changelog (e.g., All Access Pass bundles).
+        $changelog = get_post_meta( $post->ID, '_edd_sl_changelog', true );
+        if ( empty( $changelog ) ) {
+            return $url;
+        }
+
         // Store the URL data for later processing.
         $this->download_urls[] = $url;
 
