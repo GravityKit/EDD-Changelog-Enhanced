@@ -416,8 +416,8 @@ class EDD_Changelog_Enhanced {
             // Load HTML with error handling
             // Check if constants are defined (PHP 5.4+)
             $flags = 0;
-            if ( defined( 'LIBXML_HTML_NOINVALID' ) ) {
-                $flags |= LIBXML_HTML_NOINVALID;
+            if ( defined( 'LIBXML_HTML_NOINVALID' ) ) { // @phpstan-ignore-line
+                $flags |= constant( 'LIBXML_HTML_NOINVALID' );
             }
             if ( defined( 'LIBXML_HTML_NOIMPLIED' ) ) {
                 $flags |= LIBXML_HTML_NOIMPLIED;
@@ -444,6 +444,7 @@ class EDD_Changelog_Enhanced {
                     continue;
                 }
 
+                /** @var \DOMElement $node */
                 if ( $node->tagName === 'h4' ) {
                     $heading_text = trim( $node->textContent );
 
@@ -492,7 +493,7 @@ class EDD_Changelog_Enhanced {
                     // If we just finished a section, add it to the entry
                     if ( $current_section && $node->nextSibling &&
                          $node->nextSibling->nodeType === XML_ELEMENT_NODE &&
-                         $node->nextSibling->tagName === 'h4' ) {
+                         $node->nextSibling instanceof \DOMElement && $node->nextSibling->tagName === 'h4' ) {
                         if ( $current_entry ) {
                             $current_entry['sections'][] = $current_section;
                         }
@@ -752,10 +753,10 @@ class EDD_Changelog_Enhanced {
      * Generate a simplified cache key using plugin version
      *
      * @param int    $download_id The download post ID
-     * @param string $changelog   The changelog content (unused, kept for compatibility)
+     * @param string $changelog   The changelog content (unused, kept for signature compatibility).
      * @return string The cache key
      */
-    private function generate_cache_key( $download_id, $changelog ) {
+    private function generate_cache_key( $download_id, $changelog ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         $download_version = get_post_meta( $download_id, '_edd_sl_version', true );
         $plugin_version = EDD_CHANGELOG_ENHANCED_VERSION;
 
