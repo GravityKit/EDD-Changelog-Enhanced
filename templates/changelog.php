@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="index, follow">
 
+    <meta name="generator" content="EDD Changelog Enhanced v<?php echo EDD_CHANGELOG_ENHANCED_VERSION; ?> - https://github.com/GravityKit/edd-changelog-enhanced">
     <title><?php echo esc_html( sprintf( __( '%s - Changelog', 'edd-changelog-enhanced' ), $download_name ) ); ?></title>
 
     <!-- SEO Meta Tags -->
