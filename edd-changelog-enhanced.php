@@ -3,7 +3,7 @@
  * Plugin Name: EDD Changelog Enhanced
  * Plugin URI: https://www.gravitykit.com
  * Description: Enhanced changelog endpoint with semantic HTML, microformats, and SEO optimization for EDD Software Licensing downloads. Designed for iframe embedding.
- * Version: 1.2
+ * Version: 1.3
  * Author: GravityKit
  * Author URI: https://www.gravitykit.com
  * Text Domain: edd-changelog-enhanced
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Plugin constants
 if ( ! defined( 'EDD_CHANGELOG_ENHANCED_VERSION' ) ) {
-    define( 'EDD_CHANGELOG_ENHANCED_VERSION', '1.2' );
+    define( 'EDD_CHANGELOG_ENHANCED_VERSION', '1.3' );
 }
 if ( ! defined( 'EDD_CHANGELOG_ENHANCED_FILE' ) ) {
     define( 'EDD_CHANGELOG_ENHANCED_FILE', __FILE__ );
