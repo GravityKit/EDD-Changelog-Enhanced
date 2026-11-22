@@ -143,10 +143,6 @@ body {
     margin: 10px 0;
 }
 
-.e-content details + details {
-    margin-top: 8px;
-}
-
 .e-content h3 + details,
 .e-content h4 + details,
 .e-content h5 + details {
@@ -199,12 +195,8 @@ body {
     margin-right: 15px;
 }
 
-.e-content details > :not(summary):first-of-type {
+.e-content summary + * {
     margin-top: 15px;
-}
-
-.e-content details > :last-child {
-    margin-bottom: 15px;
 }
 
 .e-content details > ul,
@@ -212,6 +204,7 @@ body {
     margin-left: 35px;
 }
 
+/* A line between a release's own notes and its feature sections */
 .e-content hr {
     border: 0;
     border-top: 1px solid #e1e1e1;
@@ -221,12 +214,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .e-content summary::before {
         transition: none;
-    }
-}
-
-@media print {
-    .e-content details > :not(summary) {
-        display: block;
     }
 }
 
