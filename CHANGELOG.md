@@ -2,6 +2,11 @@
 
 All notable changes to EDD Changelog Enhanced will be documented in this file.
 
+## 1.3 - 2026-11-22
+
+### Improved
+- Collapsible `<details>` sections in a changelog, such as each GravityView Pro feature's notes, show as bordered sections that open and close.
+
 ## 1.2 - 2026-03-12
 
 ### Fixed
